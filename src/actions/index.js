@@ -4,53 +4,109 @@
 */
 
 // Import the constant actions
-import { FETCH_POSTS, FETCH_POST, CREATE_POST, EDIT_POST, DELETE_POST, ADD_COMMENT } from './types';
-import { API_ROOT } from './config';
+import { FETCH_POSTS, FETCH_POST, AUTH_ERROR, CREATE_POST, EDIT_POST, DELETE_POST, UPDATE_POST, AUTH_USER,  CREATE_COMMENT } from './types';
+import { posts, comments, firebaseAuth } from '../config/constants'
+
+import _ from 'lodash';
 import axios from 'axios'; // Used for our API post/get calls
 
-// Retrieve a single post given an id
-function fetchPost(post_id){
-  const request = axios.get(`${API_ROOT}/post/${post_id}`);
-  return {
-    type: FETCH_POST,
-    payload: request
-  };
+const Posts = posts;
+const Comments = comments;
+
+/*
+function logout () {
+  return firebaseAuth().signOut()
+}
+*/
+
+function login (email, pw) {
+  return dispatch => {
+    firebaseAuth().signInWithEmailAndPassword(email, pw)
+    .then((data) =>{
+
+      dispatch({
+        type: AUTH_USER
+      });
+      localStorage.setItem('token', data.refreshToken);
+
+    });
+  }
 }
 
 // By default fetch all posts
 function fetchPosts(){
-  const request = axios.get(`${API_ROOT}/posts`);
-  return {
-    type: FETCH_POSTS,
-    payload: request
+  return (dispatch) => {
+      Posts.on('value', snapshot => {
+      dispatch({
+        type: FETCH_POSTS,
+        payload: snapshot.val()
+      })
+    });
   };
+}
+
+// Fetch single post
+function fetchPost(id){
+  return (dispatch) => {
+    const post = Posts.child(id);
+    post.on('value', snapshot => {
+      dispatch({
+        type: FETCH_POST,
+        payload: {...snapshot.val(),id}
+      });
+    });
+    }
+
 }
 
 // Create new post given post details
 function createPost(post){
-  const request = axios.post(`${API_ROOT}/posts`, post);
-  return {
-    type: CREATE_POST,
-    payload: request
-  };
+  return dispatch => Posts.push(post).then((data) => {
+    dispatch({
+      ...post,
+      type: CREATE_POST
+    })
+  });
+}
+
+function updatePost(postId, post) {
+  let updatedPost = Posts.child(postId);
+    return dispatch => updatedPost.set({...post}).then((data) => {
+    dispatch({
+      type: UPDATE_POST
+    })
+  })
 }
 
 // Delete a post given the id
-function deletePost(post_id){
-  const request = axios.delete(`${API_ROOT}/post/${post_id}`);
+function deletePost(key){
+  //return dispatch => Posts.child(key).remove();
   return {
-    type: DELETE_POST,
-    payload: request
-  };
+    type: DELETE_POST
+  }
 }
 
 // Add a new comment
-function addComment(comment){
-  const request = axios.post(`${API_ROOT}/comments`, comment);
-  return {
-    type: ADD_COMMENT,
-    payload: request
-  };
+function createComment(postId, comment){
+  console.log('asd', comment);
+  Posts.child(postId).child('/comments').push(comment).then((data) => {
+    return dispatch => Comments.push(comment).then((data) => {
+      console.log('COMMENT', data);
+      dispatch({
+        type: CREATE_COMMENT
+      })
+    });
+  })
+  .catch((error) => {
+    dispatch({
+      type: CREATE_COMMENT
+    })
+    console.log('CATCH', error);
+  })
+
+
 }
 
-export { fetchPost, fetchPosts, createPost, deletePost };
+
+
+export {  fetchPosts, fetchPost, updatePost, createPost, createComment, deletePost, login };

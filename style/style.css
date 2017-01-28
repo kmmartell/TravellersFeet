@@ -1,0 +1,24 @@
+.content{
+  height:800px;
+}
+
+.app-body{
+  padding-top:25px;
+}
+
+
+.post-list-item{
+  margin-bottom:25px;
+}
+
+.comment-form{
+  margin-top:20px;
+}
+
+.app{
+  margin, padding: 0px;
+}
+
+.list-adventure{
+  text-align:left;
+}
